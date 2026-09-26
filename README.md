@@ -148,6 +148,14 @@ npm uninstall -g m-sql
 rm -rf ~/.config/msql
 ```
 
+## Releasing
+
+```bash
+npm version patch && git push --follow-tags
+```
+
+A GitHub Action builds the package and publishes a GitHub release with `m-sql.tgz` attached.
+
 ## Author
 
 Built by **[S.Aziz Khan](https://justaziz.com)**. Issues and PRs are welcome at [github.com/s-azizkhan/msql](https://github.com/s-azizkhan/msql).
