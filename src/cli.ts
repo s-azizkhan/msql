@@ -6,12 +6,11 @@ import readline from "node:readline";
 import chalk from "chalk";
 import { Metabase, MetabaseError } from "./metabase.js";
 import { loadConfig, saveConfig, normalizeBaseUrl } from "./config.js";
+import { mcpCommand } from "./mcp.js";
 import { loadSession, saveSession, clearSession } from "./session.js";
 import { initHistory, addHistory } from "./history.js";
 import { printHelp, printHistory, historyQuery } from "./commands.js";
 import { renderResult } from "./render.js";
-
-const DEFAULT_URL = "https://metabase.example.com";
 
 function credFromFile(file:string) {
   const raw = fs.readFileSync(path.resolve(file), "utf8").trim();
@@ -55,8 +54,8 @@ async function main() {
   const credArg=args.find(a=>!/^https?:\/\//i.test(a) && !a.startsWith("-"));
   const cfg=loadConfig();
   if (urlArg) { cfg.baseUrl=normalizeBaseUrl(urlArg); saveConfig(cfg); }
-  const baseUrl=cfg.baseUrl || DEFAULT_URL;
-  if (!cfg.baseUrl) { cfg.baseUrl=baseUrl; saveConfig(cfg); }
+  const baseUrl=cfg.baseUrl;
+  if (!baseUrl) throw new Error("No Metabase URL set.\nUse: msql https://metabase.example.com cred.txt");
 
   let session=loadSession();
 let mb: Metabase | undefined;
@@ -154,4 +153,4 @@ async function runQuery(mb:Metabase, db:{id:number,name:string}, sql:string) {
   }
 }
 
-main().catch(e=>{ console.error(`\n${chalk.red("✕")} ${e.message}\n`); process.exit(1); });
+(process.argv[2]==="mcp" ? mcpCommand(process.argv[3]) : main()).catch(e=>{ console.error(`\n${chalk.red("✕")} ${e.message}\n`); process.exit(1); });

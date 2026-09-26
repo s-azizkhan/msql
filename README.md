@@ -5,6 +5,12 @@ A local interactive SQL client that uses a Metabase session instead of direct DB
 ## Install
 
 ```bash
+npm install -g m-sql   # installs the `msql` command
+```
+
+From source:
+
+```bash
 npm install
 npm run build
 npm install -g .
@@ -12,7 +18,7 @@ npm install -g .
 
 ## complete uninstall
 
-`npm uninstall -g msql`
+`npm uninstall -g m-sql`
 `rm -rf ~/.config/msql`
 `rm -rf ~/msql`
 `rm -f ~/msql.tar.gz`
@@ -67,6 +73,20 @@ The token is stored in `~/.config/msql/session.json` with mode 0600. Configurati
 - `:q` / `:quit`
 
 
+## Claude / MCP
+
+```bash
+msql mcp enable    # register with Claude Code (user scope)
+msql mcp disable   # unregister
+```
+
+Log in with `msql` once first. Tools: `run_query`, `list_databases`, `describe_table`. Queries use the database picked in `msql` and are saved to `:history`.
+
+Other MCP clients (Claude Desktop, Cursor):
+
+```json
+{ "mcpServers": { "msql": { "command": "msql", "args": ["mcp"] } } }
+```
 
 ## Security
 
