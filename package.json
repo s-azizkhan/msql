@@ -1,7 +1,36 @@
 {
   "name": "m-sql",
   "version": "0.1.0",
-  "description": "Premium interactive SQL client for Metabase",
+  "description": "Interactive SQL CLI and MCP server for Metabase. Query any Metabase database from the terminal or from AI agents (Claude, Cursor) without direct DB credentials.",
+  "keywords": [
+    "metabase",
+    "sql",
+    "cli",
+    "mcp",
+    "mcp-server",
+    "model-context-protocol",
+    "claude",
+    "claude-code",
+    "cursor",
+    "ai-agent",
+    "sql-client",
+    "terminal",
+    "database",
+    "postgres",
+    "mysql"
+  ],
+  "author": "S.Aziz Khan (https://justaziz.com)",
+  "homepage": "https://github.com/s-azizkhan/msql#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/s-azizkhan/msql.git"
+  },
+  "bugs": {
+    "url": "https://github.com/s-azizkhan/msql/issues"
+  },
+  "engines": {
+    "node": ">=20"
+  },
   "type": "module",
   "bin": {
     "msql": "./dist/cli.js"
