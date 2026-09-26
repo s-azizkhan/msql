@@ -35,6 +35,12 @@ msql › select id, email from users limit 2;
 npm install -g m-sql
 ```
 
+Or install straight from GitHub:
+
+```bash
+npm install -g https://github.com/s-azizkhan/msql/tarball/master
+```
+
 The npm package is `m-sql`; the command it installs is `msql`. Requires Node.js 20+.
 
 ## Quick start
