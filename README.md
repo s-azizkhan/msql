@@ -38,7 +38,7 @@ npm install -g m-sql
 Or install straight from GitHub:
 
 ```bash
-npm install -g https://github.com/s-azizkhan/msql/tarball/master
+npm install -g https://github.com/s-azizkhan/msql/releases/latest/download/m-sql.tgz
 ```
 
 The npm package is `m-sql`; the command it installs is `msql`. Requires Node.js 20+.
