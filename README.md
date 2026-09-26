@@ -150,11 +150,7 @@ rm -rf ~/.config/msql
 
 ## Releasing
 
-```bash
-npm version patch && git push --follow-tags
-```
-
-A GitHub Action builds the package and publishes a GitHub release with `m-sql.tgz` attached.
+See [deployment.md](deployment.md).
 
 ## Author
 
