@@ -5,13 +5,13 @@ export class MetabaseError extends Error {
 }
 
 export class Metabase {
-  constructor(public baseUrl: string, private token?: string) {
+  constructor(public baseUrl: string, private token?: string, private apiKey = false) {
     this.baseUrl = normalizeBaseUrl(baseUrl);
   }
 
   private async request<T>(method: string, endpoint: string, body?: unknown): Promise<T> {
     const headers: Record<string,string> = { "Content-Type": "application/json" };
-    if (this.token) headers["X-Metabase-Session"] = this.token;
+    if (this.token) headers[this.apiKey ? "X-API-KEY" : "X-Metabase-Session"] = this.token;
     const res = await fetch(this.baseUrl + endpoint, {
       method, headers, body: body === undefined ? undefined : JSON.stringify(body)
     });
@@ -54,4 +54,16 @@ export class Metabase {
     if (data?.status === "failed") throw new MetabaseError(400, data.error ?? "Query failed");
     return data;
   }
+}
+
+// `token:<session>` | `apikey:<key>` | `email|password` (SSO accounts have no password)
+export const INLINE_CRED = /^(token|apikey):/;
+
+export async function authFromCred(baseUrl: string, raw: string): Promise<{ token: string; apiKey: boolean }> {
+  raw = raw.trim();
+  const m = raw.match(/^(token|apikey):([\s\S]+)$/);
+  if (m) return { token: m[2].trim(), apiKey: m[1] === "apikey" };
+  const i = raw.indexOf("|");
+  if (i < 1) throw new Error("Invalid credential. Expected email|password, token:<session> or apikey:<key>");
+  return { token: await new Metabase(baseUrl).login(raw.slice(0, i), raw.slice(i + 1)), apiKey: false };
 }

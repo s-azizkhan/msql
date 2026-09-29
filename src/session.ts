@@ -4,6 +4,7 @@ import { SESSION_FILE, ensureDir } from "./config.js";
 export type Session = {
   baseUrl: string;
   token: string;
+  apiKey?: boolean;
   createdAt: string;
   lastUsedAt: string;
 };

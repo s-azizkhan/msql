@@ -4,20 +4,13 @@ import path from "node:path";
 import os from "node:os";
 import readline from "node:readline";
 import chalk from "chalk";
-import { Metabase, MetabaseError } from "./metabase.js";
+import { Metabase, MetabaseError, INLINE_CRED, authFromCred } from "./metabase.js";
 import { loadConfig, saveConfig, normalizeBaseUrl } from "./config.js";
 import { mcpCommand } from "./mcp.js";
 import { loadSession, saveSession, clearSession } from "./session.js";
 import { initHistory, addHistory } from "./history.js";
 import { printHelp, printHistory, historyQuery } from "./commands.js";
 import { renderResult } from "./render.js";
-
-function credFromFile(file:string) {
-  const raw = fs.readFileSync(path.resolve(file), "utf8").trim();
-  const i = raw.indexOf("|");
-  if (i < 1) throw new Error(`Invalid credential file. Expected email|password`);
-  return { email: raw.slice(0,i), password: raw.slice(i+1) };
-}
 
 async function chooseDb(mb:Metabase, cfg:any): Promise<{id:number,name:string}> {
   const dbs = await mb.databases();
@@ -37,14 +30,14 @@ async function chooseDb(mb:Metabase, cfg:any): Promise<{id:number,name:string}> 
   return {id:selected.id,name:selected.name};
 }
 
-async function login(baseUrl:string, credPath:string) {
-  const {email,password}=credFromFile(credPath);
-  const mb = new Metabase(baseUrl);
+async function login(baseUrl:string, raw:string) {
   process.stdout.write(`\n  ${chalk.dim("Signing in…")}`);
-  const token=await mb.login(email,password);
-  saveSession({baseUrl,token,createdAt:new Date().toISOString(),lastUsedAt:new Date().toISOString()});
+  const {token,apiKey}=await authFromCred(baseUrl,raw);
+  const mb=new Metabase(baseUrl,token,apiKey);
+  await mb.whoami();
+  saveSession({baseUrl,token,apiKey,createdAt:new Date().toISOString(),lastUsedAt:new Date().toISOString()});
   console.log(` ${chalk.green("✓")}`);
-  return new Metabase(baseUrl,token);
+  return mb;
 }
 
 async function main() {
@@ -52,6 +45,7 @@ async function main() {
   const args=process.argv.slice(2);
   const urlArg=args.find(a=>/^https?:\/\//i.test(a));
   const credArg=args.find(a=>!/^https?:\/\//i.test(a) && !a.startsWith("-"));
+  const inline=!!credArg && INLINE_CRED.test(credArg);
   const cfg=loadConfig();
   if (urlArg) { cfg.baseUrl=normalizeBaseUrl(urlArg); saveConfig(cfg); }
   const baseUrl=cfg.baseUrl;
@@ -61,8 +55,8 @@ async function main() {
 let mb: Metabase | undefined;
 let loggedIn = false;
 
-  if (session && normalizeBaseUrl(session.baseUrl)===baseUrl) {
-    mb=new Metabase(baseUrl,session.token);
+  if (!inline && session && normalizeBaseUrl(session.baseUrl)===baseUrl) {
+    mb=new Metabase(baseUrl,session.token,session.apiKey);
     try { await mb.whoami(); session.lastUsedAt=new Date().toISOString(); saveSession(session); loggedIn=true; }
     catch (e) {
       if (!(e instanceof MetabaseError) || (e.status!==401 && e.status!==403)) throw e;
@@ -71,12 +65,17 @@ let loggedIn = false;
   }
 
   if (!loggedIn) {
-    const credPath=credArg || cfg.lastCredPath || path.join(process.cwd(),"metabasecred.txt");
-    if (!fs.existsSync(credPath)) {
-      throw new Error(`No valid Metabase session found and credentials file not found: ${credPath}\nUse: msql https://metabase.example.com cred.txt`);
+    let raw:string;
+    if (inline) { raw=credArg!; delete cfg.lastCredPath; saveConfig(cfg); }
+    else {
+      const credPath=credArg || cfg.lastCredPath || path.join(process.cwd(),"metabasecred.txt");
+      if (!fs.existsSync(credPath)) {
+        throw new Error(`No valid Metabase session found and credentials file not found: ${credPath}\nUse: msql https://metabase.example.com cred.txt | token:<session> | apikey:<key>`);
+      }
+      cfg.lastCredPath=path.resolve(credPath); saveConfig(cfg);
+      raw=fs.readFileSync(cfg.lastCredPath,"utf8");
     }
-    cfg.lastCredPath=path.resolve(credPath); saveConfig(cfg);
-    mb=await login(baseUrl,cfg.lastCredPath);
+    mb=await login(baseUrl,raw);
   }
 
   if (!mb) {
@@ -148,7 +147,7 @@ async function runQuery(mb:Metabase, db:{id:number,name:string}, sql:string) {
     addHistory({baseUrl:mb.baseUrl,databaseId:db.id,databaseName:db.name,query:sql,startedAt,durationMs:duration,rowCount:0,status:"error",error:e.message});
     if (e instanceof MetabaseError && (e.status===401 || e.status===403)) {
       console.log(`\n${chalk.yellow("⚠ Metabase session expired.")}`);
-      console.log(`  Re-login using the last credential file on the next start.`);
+      console.log(`  Restart with a fresh credential (file, token:<session> or apikey:<key>).`);
     } else console.log(`\n${chalk.red("✕")} ${e.message}\n`);
   }
 }

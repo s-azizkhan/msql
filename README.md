@@ -52,6 +52,13 @@ The npm package is `m-sql`; the command it installs is `msql`. Requires Node.js 
    chmod 600 metabasecred.txt
    ```
 
+   Google/SSO accounts have no password. Use a session token (browser cookie `metabase.SESSION`, expires in ~14 days) or an admin-created API key (Admin → Settings → Authentication → API Keys) instead, as the file contents or inline:
+
+   ```bash
+   msql https://metabase.example.com token:<session>
+   msql https://metabase.example.com apikey:<key>
+   ```
+
 2. Connect to your Metabase instance and pick a database:
 
    ```bash

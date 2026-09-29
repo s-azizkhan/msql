@@ -3,7 +3,7 @@ import { spawnSync } from "node:child_process";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
-import { Metabase, MetabaseError } from "./metabase.js";
+import { Metabase, MetabaseError, authFromCred } from "./metabase.js";
 import { loadConfig } from "./config.js";
 import { loadSession, saveSession } from "./session.js";
 import { initHistory, addHistory } from "./history.js";
@@ -20,7 +20,7 @@ function claude(args: string[], quiet = false) {
 export async function mcpCommand(sub?: string) {
   if (sub === "enable") {
     const cfg = loadConfig();
-    if (!loadSession() && !cfg.lastCredPath) console.error("⚠ Not logged in yet. Run `msql <url> <cred.txt>` once first.");
+    if (!loadSession() && !cfg.lastCredPath) console.error("⚠ Not logged in yet. Run `msql <url> <cred.txt|token:...|apikey:...>` once first.");
     claude(["mcp", "remove", "-s", "user", "msql"], true); // idempotent re-enable
     // absolute paths: Claude may not share the shell's PATH
     if (claude(["mcp", "add", "-s", "user", "msql", "--", process.execPath, fs.realpathSync(process.argv[1]), "mcp"]))
@@ -40,18 +40,18 @@ async function serve() {
   const cfg = loadConfig();
   const baseUrl = cfg.baseUrl;
   if (!baseUrl) throw new Error("No Metabase URL set. Run `msql <url> <cred.txt>` once.");
-  let mb = new Metabase(baseUrl, loadSession()?.token);
+  const s0 = loadSession();
+  let mb = new Metabase(baseUrl, s0?.token, s0?.apiKey);
 
   // stdout is the MCP channel: never log; re-login silently on expired token
   async function call<T>(fn: (mb: Metabase) => Promise<T>): Promise<T> {
     try { return await fn(mb); }
     catch (e) {
       if (!(e instanceof MetabaseError) || (e.status !== 401 && e.status !== 403) || !cfg.lastCredPath) throw e;
-      const [email, ...rest] = fs.readFileSync(cfg.lastCredPath, "utf8").trim().split("|");
-      const token = await new Metabase(baseUrl).login(email, rest.join("|"));
+      const { token, apiKey } = await authFromCred(baseUrl, fs.readFileSync(cfg.lastCredPath, "utf8"));
       const now = new Date().toISOString();
-      saveSession({ baseUrl, token, createdAt: now, lastUsedAt: now });
-      mb = new Metabase(baseUrl, token);
+      saveSession({ baseUrl, token, apiKey, createdAt: now, lastUsedAt: now });
+      mb = new Metabase(baseUrl, token, apiKey);
       return fn(mb);
     }
   }
