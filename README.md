@@ -96,11 +96,11 @@ msql cred2.txt
 msql includes an MCP server over stdio. Log in with `msql` once, then:
 
 ```bash
-msql mcp enable    # register with Claude Code (all projects)
+msql mcp enable    # register with Claude Code (all projects) and Claude Desktop
 msql mcp disable   # unregister
 ```
 
-**Other MCP clients** (Claude Desktop, Cursor, Windsurf, VS Code): add this to the client's MCP config:
+**Other MCP clients** (Cursor, Windsurf, VS Code): add this to the client's MCP config:
 
 ```json
 {
@@ -109,6 +109,8 @@ msql mcp disable   # unregister
   }
 }
 ```
+
+The server sends usage instructions (Metabase URL, default database, workflow) to the agent, so it reaches for msql for any remote database without project-level prompting. Restart the agent after changing the default database.
 
 **MCP tools:**
 
@@ -140,7 +142,7 @@ Queries run by agents are saved to `:history` too.
 Install with `npm install -g m-sql`, then run `msql https://your-metabase cred.txt` and type SQL.
 
 **Can Claude or Cursor query my Metabase database?**
-Yes. Run `msql mcp enable` for Claude Code, or add the JSON config above to any MCP client.
+Yes. Run `msql mcp enable` for Claude Code and Claude Desktop, or add the JSON config above to any MCP client.
 
 **Do I need database credentials?**
 No. msql only needs a Metabase login, and it can query any database connected to Metabase.
@@ -151,8 +153,8 @@ No, only native SQL.
 ## Uninstall
 
 ```bash
+msql remove            # unregister MCP, delete ~/.config/msql, optionally the cred file
 npm uninstall -g m-sql
-rm -rf ~/.config/msql
 ```
 
 ## Releasing

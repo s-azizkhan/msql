@@ -5,7 +5,7 @@ import os from "node:os";
 import readline from "node:readline";
 import chalk from "chalk";
 import { Metabase, MetabaseError, INLINE_CRED, authFromCred } from "./metabase.js";
-import { loadConfig, saveConfig, normalizeBaseUrl } from "./config.js";
+import { loadConfig, saveConfig, normalizeBaseUrl, APP_DIR } from "./config.js";
 import { mcpCommand } from "./mcp.js";
 import { loadSession, saveSession, clearSession } from "./session.js";
 import { initHistory, addHistory } from "./history.js";
@@ -152,4 +152,20 @@ async function runQuery(mb:Metabase, db:{id:number,name:string}, sql:string) {
   }
 }
 
-(process.argv[2]==="mcp" ? mcpCommand(process.argv[3]) : main()).catch(e=>{ console.error(`\n${chalk.red("✕")} ${e.message}\n`); process.exit(1); });
+async function remove() {
+  const cred=loadConfig().lastCredPath;
+  await mcpCommand("disable");
+  fs.rmSync(APP_DIR,{recursive:true,force:true});
+  console.log(`${chalk.green("✓")} Removed ${APP_DIR} (config, session, history).`);
+  if (cred && fs.existsSync(cred)) {
+    const rl=readline.createInterface({input:process.stdin,output:process.stdout});
+    const answer=await new Promise<string>(resolve=>rl.question(`Also delete credentials file ${cred}? [y/N] `,resolve));
+    rl.close();
+    if (/^y(es)?$/i.test(answer.trim())) { fs.rmSync(cred); console.log(`${chalk.green("✓")} Removed ${cred}`); }
+    else console.log(`Kept. To remove it later:\n  rm "${cred}"`);
+  }
+  console.log(`\nTo uninstall msql itself:\n  npm uninstall -g m-sql`);
+}
+
+const cmd=process.argv[2];
+(cmd==="mcp" ? mcpCommand(process.argv[3]) : cmd==="remove" ? remove() : main()).catch(e=>{ console.error(`\n${chalk.red("✕")} ${e.message}\n`); process.exit(1); });

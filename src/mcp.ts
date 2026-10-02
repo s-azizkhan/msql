@@ -1,4 +1,6 @@
 import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
@@ -10,25 +12,47 @@ import { initHistory, addHistory } from "./history.js";
 
 const MAX_ROWS = 200;
 
+const CONFIG_HINT = "add this to your MCP client config:\n" +
+  JSON.stringify({ mcpServers: { msql: { command: "msql", args: ["mcp"] } } }, null, 2);
+
+// undefined = `claude` CLI not installed
 function claude(args: string[], quiet = false) {
   const r = spawnSync("claude", args, { stdio: quiet ? "ignore" : "inherit" });
-  if (r.error) throw new Error("`claude` CLI not found. Install Claude Code, or add this to your MCP client config:\n" +
-    JSON.stringify({ mcpServers: { msql: { command: "msql", args: ["mcp"] } } }, null, 2));
-  return r.status === 0;
+  return r.error ? undefined : r.status === 0;
+}
+
+// Claude Desktop has no CLI; edit its config file. false = Desktop not installed.
+function desktop(entry?: { command: string; args: string[] }) {
+  const dir = process.platform === "darwin" ? path.join(os.homedir(), "Library/Application Support/Claude")
+    : process.platform === "win32" ? path.join(process.env.APPDATA ?? "", "Claude")
+    : path.join(os.homedir(), ".config/Claude");
+  const file = path.join(dir, "claude_desktop_config.json");
+  if (!fs.existsSync(entry ? dir : file)) return false;
+  const cfg = fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, "utf8")) : {};
+  cfg.mcpServers ??= {};
+  if (entry) cfg.mcpServers.msql = entry; else delete cfg.mcpServers.msql;
+  fs.writeFileSync(file, JSON.stringify(cfg, null, 2) + "\n");
+  return true;
 }
 
 export async function mcpCommand(sub?: string) {
   if (sub === "enable") {
     const cfg = loadConfig();
     if (!loadSession() && !cfg.lastCredPath) console.error("⚠ Not logged in yet. Run `msql <url> <cred.txt|token:...|apikey:...>` once first.");
-    claude(["mcp", "remove", "-s", "user", "msql"], true); // idempotent re-enable
     // absolute paths: Claude may not share the shell's PATH
-    if (claude(["mcp", "add", "-s", "user", "msql", "--", process.execPath, fs.realpathSync(process.argv[1]), "mcp"]))
-      console.log("✓ msql MCP enabled for Claude Code. Restart Claude to use it.");
+    const [command, ...args] = [process.execPath, fs.realpathSync(process.argv[1]), "mcp"];
+    claude(["mcp", "remove", "-s", "user", "msql"], true); // idempotent re-enable
+    const code = claude(["mcp", "add", "-s", "user", "msql", "--", command, ...args]);
+    if (code) console.log("✓ msql MCP enabled for Claude Code.");
+    const desk = desktop({ command, args });
+    if (desk) console.log("✓ msql MCP enabled for Claude Desktop.");
+    if (code === undefined && !desk) throw new Error("Neither Claude Code nor Claude Desktop found. Install one, or " + CONFIG_HINT);
+    if (code || desk) console.log("Restart Claude to use it.");
     return;
   }
   if (sub === "disable") {
-    if (claude(["mcp", "remove", "-s", "user", "msql"])) console.log("✓ msql MCP disabled.");
+    if (claude(["mcp", "remove", "-s", "user", "msql"])) console.log("✓ msql MCP disabled for Claude Code.");
+    if (desktop()) console.log("✓ msql MCP disabled for Claude Desktop.");
     return;
   }
   if (sub) throw new Error("Usage: msql mcp [enable|disable]");
@@ -58,7 +82,11 @@ async function serve() {
   const text = (v: unknown) => ({ content: [{ type: "text" as const, text: typeof v === "string" ? v : JSON.stringify(v) }] });
   const fail = (e: any) => ({ ...text(e.message), isError: true });
 
-  const server = new McpServer({ name: "msql", version: "0.1.0" });
+  const server = new McpServer({ name: "msql", version: "0.1.0" }, {
+    instructions: `Remote databases via Metabase (${baseUrl}). Use these tools whenever you need data from a remote/deployed database (prod, staging, any DB connected to Metabase): validating behavior against real data, counts, lookups, debugging records. Don't use a browser, curl or a local DB client for them; local DB clients only reach local data.
+Default database: ${cfg.databaseName ?? "none"}${cfg.databaseId ? ` (id ${cfg.databaseId})` : ""}. Call list_databases and pass databaseId when the user names another database. Say which database a result came from.
+Workflow: list_databases → describe_table (column names) → run_query. Write SQL in the database's engine dialect. Results cap at ${MAX_ROWS} rows: use LIMIT, filters and aggregates instead of pulling raw tables.`,
+  });
 
   server.registerTool("list_databases", { description: "List Metabase databases (id, name, engine)." },
     async () => {
