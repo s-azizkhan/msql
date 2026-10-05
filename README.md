@@ -1,7 +1,7 @@
 # msql: Metabase SQL CLI and MCP Server
 
-[![npm version](https://img.shields.io/npm/v/m-sql.svg)](https://www.npmjs.com/package/m-sql)
-[![npm downloads](https://img.shields.io/npm/dm/m-sql.svg)](https://www.npmjs.com/package/m-sql)
+[![npm version](https://img.shields.io/npm/v/metabase-sql.svg)](https://www.npmjs.com/package/metabase-sql)
+[![npm downloads](https://img.shields.io/npm/dm/metabase-sql.svg)](https://www.npmjs.com/package/metabase-sql)
 
 **msql** is an interactive SQL terminal client for [Metabase](https://www.metabase.com/). It is also a **Model Context Protocol (MCP) server**, so AI agents like Claude Code, Claude Desktop and Cursor can run SQL through Metabase.
 
@@ -32,16 +32,16 @@ msql › select id, email from users limit 2;
 ## Install
 
 ```bash
-npm install -g m-sql
+npm install -g metabase-sql
 ```
 
 Or install straight from GitHub:
 
 ```bash
-npm install -g https://github.com/s-azizkhan/msql/releases/latest/download/m-sql.tgz
+npm install -g https://github.com/s-azizkhan/msql/releases/latest/download/metabase-sql.tgz
 ```
 
-The npm package is `m-sql`; the command it installs is `msql`. Requires Node.js 20+.
+The npm package is `metabase-sql`; the command it installs is `msql`. Requires Node.js 20+.
 
 ## Quick start
 
@@ -139,7 +139,7 @@ Queries run by agents are saved to `:history` too.
 ## FAQ
 
 **How do I query Metabase from the command line?**
-Install with `npm install -g m-sql`, then run `msql https://your-metabase cred.txt` and type SQL.
+Install with `npm install -g metabase-sql`, then run `msql https://your-metabase cred.txt` and type SQL.
 
 **Can Claude or Cursor query my Metabase database?**
 Yes. Run `msql mcp enable` for Claude Code and Claude Desktop, or add the JSON config above to any MCP client.
@@ -154,7 +154,7 @@ No, only native SQL.
 
 ```bash
 msql remove            # unregister MCP, delete ~/.config/msql, optionally the cred file
-npm uninstall -g m-sql
+npm uninstall -g metabase-sql
 ```
 
 ## Releasing

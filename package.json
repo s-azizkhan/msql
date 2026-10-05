@@ -1,5 +1,5 @@
 {
-  "name": "m-sql",
+  "name": "metabase-sql",
   "version": "0.2.1",
   "description": "Interactive SQL CLI and MCP server for Metabase. Query any Metabase database from the terminal or from AI agents (Claude, Cursor) without direct DB credentials.",
   "keywords": [

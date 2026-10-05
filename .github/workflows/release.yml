@@ -17,8 +17,8 @@ jobs:
           node-version: 22
       - run: npm install
       - run: npm run build
-      # fixed asset name keeps releases/latest/download/m-sql.tgz stable
-      - run: mv "$(npm pack | tail -1)" m-sql.tgz
-      - run: gh release create "$GITHUB_REF_NAME" m-sql.tgz --generate-notes
+      # fixed asset name keeps releases/latest/download/metabase-sql.tgz stable
+      - run: mv "$(npm pack | tail -1)" metabase-sql.tgz
+      - run: gh release create "$GITHUB_REF_NAME" metabase-sql.tgz --generate-notes
         env:
           GH_TOKEN: ${{ github.token }}

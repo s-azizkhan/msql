@@ -164,7 +164,7 @@ async function remove() {
     if (/^y(es)?$/i.test(answer.trim())) { fs.rmSync(cred); console.log(`${chalk.green("✓")} Removed ${cred}`); }
     else console.log(`Kept. To remove it later:\n  rm "${cred}"`);
   }
-  console.log(`\nTo uninstall msql itself:\n  npm uninstall -g m-sql`);
+  console.log(`\nTo uninstall msql itself:\n  npm uninstall -g metabase-sql`);
 }
 
 const cmd=process.argv[2];
